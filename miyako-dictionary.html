@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宮古語辞書</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; background: linear-gradient(135deg, #3949ab 0%, #1a237e 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 950px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 30px; text-align: center; }
+        header h1 { font-size: 28px; margin-bottom: 8px; }
+        header p { opacity: 0.8; font-size: 14px; }
+        .search-section { padding: 20px 30px; background: #f8f9fa; border-bottom: 1px solid #e9ecef; }
+        .mode-toggle { display: flex; gap: 0; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 2px solid #3949ab; }
+        .mode-btn { flex: 1; padding: 10px 20px; border: none; background: white; cursor: pointer; font-size: 14px; font-weight: bold; color: #3949ab; transition: all 0.2s; }
+        .mode-btn:hover { background: #f0f0ff; }
+        .mode-btn.active { background: #3949ab; color: white; }
+        #searchInput { width: 100%; padding: 12px 16px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
+        #searchInput:focus { outline: none; border-color: #3949ab; }
+        .search-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
+        .search-options label { font-size: 12px; color: #6c757d; margin-right: 5px; }
+        .search-option { display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; padding: 4px 10px; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6; }
+        .search-option:hover { background: #e9ecef; }
+        .search-option input { margin: 0; cursor: pointer; }
+        .search-option.active { background: #3949ab; color: white; border-color: #3949ab; }
+        .search-targets { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+        .search-target { font-size: 11px; padding: 3px 8px; background: #e9ecef; border-radius: 3px; cursor: pointer; }
+        .search-target:hover { background: #dee2e6; }
+        .search-target.active { background: #28a745; color: white; }
+        .alphabet-nav { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 15px; }
+        .alphabet-nav button { padding: 6px 10px; border: none; background: #e9ecef; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .alphabet-nav button:hover { background: #3949ab; color: white; }
+        .alphabet-nav button.active { background: #1a237e; color: white; }
+        .filter-section { display: flex; flex-wrap: wrap; gap: 8px; }
+        .filter-btn { padding: 6px 12px; border: none; background: #e9ecef; border-radius: 20px; cursor: pointer; font-size: 12px; }
+        .filter-btn:hover { background: #dee2e6; }
+        .filter-btn.active { background: #3949ab; color: white; }
+        .stats { padding: 10px 30px; background: #fff3cd; font-size: 13px; color: #856404; }
+        .dictionary-list { max-height: 60vh; overflow-y: auto; }
+        .entry { padding: 20px 30px; border-bottom: 1px solid #e9ecef; }
+        .entry:hover { background: #fafbfc; }
+        .entry-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+        .morph { font-size: 26px; font-weight: bold; color: #1a1a2e; }
+        .morph-index { font-size: 14px; color: #6c757d; vertical-align: super; }
+        .pos-badge { padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .gloss-main { font-size: 18px; color: #2d3436; }
+        .entry-header.reverse .gloss-main { font-size: 24px; font-weight: bold; color: #1a1a2e; order: -1; }
+        .entry-header.reverse .morph { font-size: 20px; color: #3949ab; }
+        .allomorphs { font-size: 13px; color: #6c757d; margin: 8px 0; padding: 6px 10px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #856404; }
+        .allomorphs::before { content: "異形態: "; font-weight: bold; color: #856404; }
+        .allomorph-item { display: inline-block; background: #e9ecef; padding: 2px 8px; border-radius: 3px; margin: 2px 3px 2px 0; font-family: monospace; font-size: 14px; }
+        .examples-section { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #dee2e6; }
+        .examples-title { font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 8px; }
+        .example { margin-bottom: 12px; padding: 10px; background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%); border-radius: 8px; font-size: 13px; }
+        .example-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .play-btn { width: 32px; height: 32px; border: none; border-radius: 50%; background: linear-gradient(135deg, #3949ab 0%, #1a237e 100%); color: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+        .play-btn:hover { transform: scale(1.1); box-shadow: 0 3px 10px rgba(102,126,234,0.4); }
+        .play-btn.playing { background: #e74c3c; }
+        .example-text { font-size: 14px; color: #1a1a2e; line-height: 1.5; font-weight: 500; flex: 1; }
+        .example-trans { font-size: 13px; color: #2d3436; margin-bottom: 8px; padding: 6px 10px; background: #fff; border-radius: 4px; border-left: 3px solid #3949ab; }
+        .example-trans::before { content: "訳: "; font-weight: bold; color: #3949ab; }
+        .interlinear { display: flex; flex-wrap: wrap; gap: 2px; font-family: 'Consolas', 'Monaco', monospace; padding-top: 8px; border-top: 1px solid #dee2e6; }
+        .gloss-unit { display: flex; flex-direction: column; align-items: center; padding: 3px 5px; margin-right: 4px; border-radius: 3px; background: #fff; }
+        .gloss-unit.target { background: #fff3cd; border: 2px solid #ffc107; }
+        .gloss-unit .morph-text { font-size: 13px; color: #1a1a2e; font-weight: 500; }
+        .gloss-unit .gloss-text { font-size: 10px; color: #6c757d; }
+        .gloss-unit.target .morph-text { color: #856404; font-weight: bold; }
+        .gloss-unit.target .gloss-text { color: #856404; }
+        .pos-V { background: #cce5ff; color: #004085; } .pos-N { background: #d4edda; color: #155724; } .pos-AUX { background: #fff3cd; color: #856404; } .pos-ADJ { background: #f8d7da; color: #721c24; } .pos-ADV { background: #e2d5f1; color: #5a2d82; } .pos-PRN { background: #d1ecf1; color: #0c5460; } .pos-CONJ { background: #d4edda; color: #155724; } .pos-CP { background: #ffeaa7; color: #856404; } .pos-ISP { background: #dfe6e9; color: #2d3436; } .pos-SFP { background: #fab1a0; color: #6c3d00; } .pos-INTJ { background: #fd79a8; color: #6c1e3d; } .pos-VAFX { background: #74b9ff; color: #003366; } .pos-NAFX { background: #a29bfe; color: #2d1f5c; } .pos-FN { background: #81ecec; color: #006266; } .pos-PN { background: #ffeaa7; color: #6c5000; } .pos-NUM { background: #fdcb6e; color: #5a4000; } .pos-CJP { background: #00cec9; color: #006266; } .pos-LP { background: #a8e6cf; color: #1b5e20; } .pos-CLF { background: #b2bec3; color: #2d3436; } .pos-default { background: #e9ecef; color: #495057; }
+        .no-results { padding: 40px; text-align: center; color: #6c757d; }
+        footer { padding: 15px 30px; background: #f8f9fa; text-align: center; font-size: 12px; color: #6c757d; }
+        .highlight { background: #fff3cd; padding: 0 2px; border-radius: 2px; }
+        .csv-btn { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 10px; }
+        .csv-btn:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏝️ 宮古語辞書</h1>
+            <p>Miyako Language Dictionary</p>
+        </header>
+        <div class="search-section">
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="modeNormal">見出し順（宮古語→意味）</button>
+                <button class="mode-btn" id="modeReverse">逆引き（意味→宮古語）</button>
+            </div>
+            <input type="text" id="searchInput" placeholder="形態素・意味・品詞・和訳を検索...">
+            <div class="search-options">
+                <label>検索方法:</label>
+                <span class="search-option active" data-mode="partial">部分一致</span>
+                <span class="search-option" data-mode="exact">完全一致</span>
+                <span class="search-option" data-mode="prefix">前方一致</span>
+                <span class="search-option" data-mode="suffix">後方一致</span>
+                <div class="search-targets">
+                    <span class="search-target active" data-target="morph">形態素</span>
+                    <span class="search-target active" data-target="gloss">意味</span>
+                    <span class="search-target active" data-target="pos">品詞</span>
+                    <span class="search-target active" data-target="trans">和訳</span>
+                    <span class="search-target active" data-target="allo">異形態</span>
+                </div>
+            </div>
+            <div class="alphabet-nav" id="alphabetNav"></div>
+            <div class="filter-section" id="posFilters"></div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="dictionary-list" id="dictionaryList"></div>
+        <footer>宮古語辞書 | 総見出し語数: <span id="totalCount">0</span>語 | 🔊 例文をクリックで音声再生 <button class="csv-btn" onclick="downloadCSV()">📥 CSVダウンロード</button></footer>
+        <audio id="mainAudio" style="display:none;"></audio>
+    </div>
+<script>
+const dictionaryData = [{"morph":"-fɨ","pos":"AAFX","gloss":"VLZ","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":9,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"-gama","pos":"NAFX","gloss":"DIM","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":10,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0},{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":2,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"-i","pos":"VAFX","gloss":"THM","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":9,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0},{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":11,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":2},{"morph":"-i","pos":"VAFX","gloss":"SEQ","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":10,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0},{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":12,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":1},{"morph":"-mas","pos":"XAFX","gloss":"CVLZ","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":8,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"-munu","pos":"AAFX","gloss":"ADJ","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":5,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"-tar","pos":"VAFX","gloss":"PST","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":13,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0},{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":16,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"-u","pos":"AUX","gloss":"PROG","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":15,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=a","pos":"ISP","gloss":"TOP","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":3,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=ca","pos":"SFP","gloss":"HS","allomorphs":[],"examples":[{"text":"nkjaan=ca","trans":"昔々のことだとさ。","morphs":["nkjaan","=ca"],"glosses":["昔","HS"],"pos_list":["N","SFP"],"target_index":1,"audio_file":"https://zenodo.org/api/records/17774723/files/001_nkjaanca.wav/content?download=1","start_time":0,"end_time":0},{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":14,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0},{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":17,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=du","pos":"ISP","gloss":"FOC","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":1,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=kara","pos":"CP","gloss":"ABL","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":1,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=mai","pos":"LP","gloss":"ADD","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":2,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=n","pos":"CP","gloss":"DAT","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":6,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=nu","pos":"CP","gloss":"NOM","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":11,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=ti","pos":"CJP","gloss":"QUOT","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":7,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"=tu","pos":"CP","gloss":"COM","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":3,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"anna","pos":"N","gloss":"母親","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":2,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"aparagi","pos":"ADJ","gloss":"美しい","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":6,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0},{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":4,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"asɨ","pos":"V","gloss":"言う","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":8,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"dondon","pos":"INTJ","gloss":"ONM","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":4,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"ffa","pos":"N","gloss":"子","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":9,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0},{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":1,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"icban","pos":"ADV","gloss":"一番","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":3,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"midum","pos":"N","gloss":"女","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":7,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"mmja","pos":"INTJ","gloss":"DSC","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":7,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"mura","pos":"N","gloss":"村","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":0,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"nar","pos":"V","gloss":"なる","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":10,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"nkjaan","pos":"N","gloss":"昔","allomorphs":[],"examples":[{"text":"nkjaan=ca","trans":"昔々のことだとさ。","morphs":["nkjaan","=ca"],"glosses":["昔","HS"],"pos_list":["N","SFP"],"target_index":0,"audio_file":"https://zenodo.org/api/records/17774723/files/001_nkjaanca.wav/content?download=1","start_time":0,"end_time":0},{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":0,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"sudac","pos":"V","gloss":"育つ","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":11,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"tamamiga","pos":"N","gloss":"タマミガ","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":6,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"u","pos":"V","gloss":"いる","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":12,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"uja","pos":"N","gloss":"父親","allomorphs":[],"examples":[{"text":"nkjaan=du anna=tu uja=tu tamamiga=ti asɨ ffa-gama=nu u-tar=ca","trans":"昔々、母親と父親とタマミガという子供がいたんだとさ。","morphs":["nkjaan","=du","anna","=tu","uja","=tu","tamamiga","=ti","asɨ","ffa","-gama","=nu","u","-tar","=ca"],"glosses":["昔","FOC","母親","COM","父親","COM","タマミガ","QUOT","言う","子","DIM","NOM","いる","PST","HS"],"pos_list":["N","ISP","N","CP","N","CP","N","CJP","V","N","NAFX","CP","V","VAFX","SFP"],"target_index":4,"audio_file":"https://zenodo.org/api/records/17774723/files/002_nkjaandu_annatu_ujatu_tamam.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"unu","pos":"ADN","gloss":"その","allomorphs":[],"examples":[{"text":"unu ffa-gama=a dondon dondon aparagi-midum-mas-i-i sudac-i-i","trans":"その子供はどんどんどんどん美しい女に育って","morphs":["unu","ffa","-gama","=a","dondon","dondon","aparagi","midum","-mas","-i","-i","sudac","-i","-i"],"glosses":["その","子","DIM","TOP","ONM","ONM","美しい","女","CVLZ","THM","SEQ","育つ","THM","SEQ"],"pos_list":["ADN","N","NAFX","ISP","INTJ","INTJ","ADJ","N","XAFX","VAFX","VAFX","V","VAFX","VAFX"],"target_index":0,"audio_file":"https://zenodo.org/api/records/17774723/files/003_unu_ffa-gamaa_dondon_dondon_a.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null},{"morph":"uu","pos":"ADJ","gloss":"大きい","allomorphs":[],"examples":[{"text":"mura=kara=mai icban aparagi-munu=n mmja uu-fɨ nar-i-i nar-i-u-tar=ca","trans":"村でも一番の美人に成長したんだとさ。","morphs":["mura","=kara","=mai","icban","aparagi","-munu","=n","mmja","uu","-fɨ","nar","-i","-i","nar","-i","-u","-tar","=ca"],"glosses":["村","ABL","ADD","一番","美しい","ADJ","DAT","DSC","大きい","VLZ","なる","THM","SEQ","なる","THM","PROG","PST","HS"],"pos_list":["N","CP","LP","ADV","ADJ","AAFX","CP","INTJ","ADJ","AAFX","V","VAFX","VAFX","V","VAFX","AUX","VAFX","SFP"],"target_index":8,"audio_file":"https://zenodo.org/api/records/17774723/files/004_murakaramai_icban_aparagi-mu.wav/content?download=1","start_time":0,"end_time":0}],"morph_index":null}];
+let currentFilter = null, currentLetter = null, searchQuery = '', reverseMode = false;
+let searchMode = 'partial';
+let searchTargets = { morph: true, gloss: true, pos: true, trans: true, allo: true };
+let currentlyPlaying = null;
+
+// 音声を再生
+async function playAudio(url, startTime, endTime, btn) {
+    const audio = document.getElementById('mainAudio');
+    
+    // LaTeXスタイルのUTFエスケープを変換
+    // 例: UTF{0268} → ɨ
+    url = url.replace(/\UTF{([0-9A-Fa-f]+)}/g, (match, hex) => {
+        return String.fromCodePoint(parseInt(hex, 16));
+    });
+    
+    // 既に再生中の場合は停止
+    if (currentlyPlaying && currentlyPlaying.button === btn && !audio.paused) {
+        audio.pause();
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+        currentlyPlaying = null;
+        return;
+    }
+    
+    // 前の再生を停止
+    if (currentlyPlaying) {
+        audio.pause();
+        if (currentlyPlaying.button) {
+            currentlyPlaying.button.classList.remove('playing');
+            currentlyPlaying.button.textContent = '▶';
+        }
+    }
+    
+    btn.classList.add('playing');
+    btn.textContent = '⏳';
+    
+    // ファイル全体を再生するか、範囲再生するかを判定
+    const playFullFile = (!startTime && !endTime) || (startTime === 0 && endTime === 0);
+    
+    // 再生終了チェック（範囲再生の場合のみ）
+    const checkEnd = () => {
+        if (!playFullFile && audio.currentTime >= endTime) {
+            audio.pause();
+            btn.classList.remove('playing');
+            btn.textContent = '▶';
+            currentlyPlaying = null;
+        } else if (currentlyPlaying && currentlyPlaying.button === btn && !audio.paused) {
+            requestAnimationFrame(checkEnd);
+        }
+    };
+    
+    // 再生終了イベント（ファイル全体再生の場合）
+    const onEnded = () => {
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+        currentlyPlaying = null;
+        audio.removeEventListener('ended', onEnded);
+    };
+    
+    // 再生開始
+    const startPlay = async (finalUrl) => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.src = finalUrl;
+        
+        if (playFullFile) {
+            audio.addEventListener('ended', onEnded);
+        }
+        
+        try {
+            await audio.play();
+            if (!playFullFile) {
+                audio.currentTime = startTime;
+                requestAnimationFrame(checkEnd);
+            }
+            btn.textContent = '⏹';
+            currentlyPlaying = { button: btn, endTime };
+            return true;
+        } catch (error) {
+            console.log('Play failed:', error.name, error.message);
+            audio.removeEventListener('ended', onEnded);
+            return false;
+        }
+    };
+    
+    // 直接URLで試す
+    if (await startPlay(url)) return;
+    
+    // CORSプロキシを試す
+    console.log('Trying CORS proxy...');
+    if (await startPlay('https://corsproxy.io/?' + encodeURIComponent(url))) return;
+    
+    // 別のプロキシを試す
+    console.log('Trying alternative proxy...');
+    if (await startPlay('https://api.allorigins.win/raw?url=' + encodeURIComponent(url))) return;
+    
+    // 全て失敗
+    console.log('All attempts failed');
+    btn.classList.remove('playing');
+    btn.textContent = '❌';
+}
+
+// ページ読み込み後にプリロード開始
+// 音声プリロードは削除（シンプルなアプローチに変更）
+
+const glossReading = {'上がる':'あがる','間':'あいだ','家':'いえ','行く':'いく','海':'うみ','お母さん':'おかあさん','落ちる':'おちる','沖縄':'おきなわ','顔':'かお','帰る':'かえる','買う':'かう','神':'かみ','髪':'かみ','来る':'くる','魚':'さかな','死ぬ':'しぬ','手':'て','時':'とき','友達':'ともだち','人':'ひと','船':'ふね','昔':'むかし','水':'みず','物':'もの','焼く':'やく','豆腐':'とうふ','食べる':'たべる','大きい':'おおきい','貧しい':'まずしい','豊かな':'ゆたかな'};
+const gojuonRows = [{label:'あ',chars:'あいうえおアイウエオ'},{label:'か',chars:'かきくけこがぎぐげごカキクケコガギグゲゴ'},{label:'さ',chars:'さしすせそざじずぜぞサシスセソザジズゼゾ'},{label:'た',chars:'たちつてとだぢづでどタチツテトダヂヅデド'},{label:'な',chars:'なにぬねのナニヌネノ'},{label:'は',chars:'はひふへほばびぶべぼぱぴぷぺぽハヒフヘホバビブベボパピプペポ'},{label:'ま',chars:'まみむめもマミムメモ'},{label:'や',chars:'やゆよヤユヨ'},{label:'ら',chars:'らりるれろラリルレロ'},{label:'わ',chars:'わをんワヲン'},{label:'他',chars:''}];
+
+function getGojuonRow(str) { if (!str) return '他'; const r = glossReading[str], f = r ? r.charAt(0) : str.charAt(0); for (const row of gojuonRows) if (row.chars.includes(f)) return row.label; return '他'; }
+function getGojuonSortKey(str) { if (!str) return 'ん999'; if (glossReading[str]) return glossReading[str]; const first = str.charAt(0); if ((first >= 'ぁ' && first <= 'ん') || (first >= 'ァ' && first <= 'ン')) return str; return 'ん999' + str; }
+function getPosClass(pos) { const known = ['V','N','AUX','ADJ','ADV','PRN','CONJ','CP','ISP','SFP','INTJ','VAFX','NAFX','FN','PN','NUM','CLF','CJP','LP']; return known.includes(pos) ? 'pos-'+pos : 'pos-default'; }
+function highlightText(text, q) { 
+    if (!q || !text) return text || ''; 
+    try { 
+        const lower = text.toLowerCase();
+        const qLower = q.toLowerCase();
+        const idx = lower.indexOf(qLower);
+        if (idx === -1) return text;
+        return text.substring(0, idx) + '<span class="highlight">' + text.substring(idx, idx + q.length) + '</span>' + text.substring(idx + q.length);
+    } catch(e) { return text; } 
+}
+
+function renderExample(ex) {
+    const { morphs = [], glosses = [], trans, target_index, audio_file, start_time, end_time } = ex;
+    const safeAudioFile = audio_file ? audio_file.replace(/'/g, "\\'") : '';
+    let playBtn = audio_file ? `<button class="play-btn" onclick="playAudio('${safeAudioFile}', ${start_time || 0}, ${end_time || 0}, this)">▶</button>` : '';
+    const transHtml = trans ? `<div class="example-trans">${trans}</div>` : '';
+    let interlinear = '';
+    for (let i = 0; i < morphs.length && i < glosses.length; i++) {
+        const m = morphs[i], g = glosses[i]; if (!m || m === 'XXX') continue;
+        interlinear += `<div class="gloss-unit ${i === target_index ? 'target' : ''}"><span class="morph-text">${m}</span><span class="gloss-text">${g}</span></div>`;
+    }
+    return `<div class="example"><div class="example-header">${playBtn}<div class="example-text">${ex.text}</div></div>${transHtml}<div class="interlinear">${interlinear}</div></div>`;
+}
+
+function renderEntry(item, q) {
+    const posClass = getPosClass(item.pos), indexHtml = item.morph_index ? `<span class="morph-index">${item.morph_index}</span>` : '';
+    const headerClass = reverseMode ? 'entry-header reverse' : 'entry-header';
+    const glossDisplay = reverseMode && item.glosses_all?.length > 1 ? item.glosses_all.join('、') : item.gloss;
+    let allomorphsHtml = item.allomorphs?.length ? `<div class="allomorphs">${item.allomorphs.map(a => `<span class="allomorph-item">${a}</span>`).join('')}</div>` : '';
+    let examplesHtml = '';
+    if (item.examples?.length) {
+        const tc = item.examples.filter(e => e.trans).length, ac = item.examples.filter(e => e.audio_file).length;
+        examplesHtml = `<div class="examples-section"><div class="examples-title">📖 用例 ${item.examples.length}件${tc ? `（和訳${tc}件）` : ''}${ac ? ` 🔊${ac}件` : ''}</div>${item.examples.map(renderExample).join('')}</div>`;
+    }
+    return `<div class="entry"><div class="${headerClass}"><span class="morph">${highlightText(item.morph, q)}${indexHtml}</span><span class="pos-badge ${posClass}">${item.pos || '?'}</span><span class="gloss-main">${highlightText(glossDisplay, q)}</span></div>${allomorphsHtml}${examplesHtml}</div>`;
+}
+
+function getSortedData() {
+    if (reverseMode) {
+        const groups = new Map();
+        for (const item of dictionaryData) {
+            if (!groups.has(item.morph)) groups.set(item.morph, { morph: item.morph, glosses: [], pos: item.pos, allomorphs: new Set(), examples: [] });
+            const g = groups.get(item.morph), base = item.gloss?.split('.')[0] || '';
+            if (base && !g.glosses.includes(base)) g.glosses.push(base);
+            (item.allomorphs || []).forEach(a => g.allomorphs.add(a));
+            (item.examples || []).forEach(ex => { if (g.examples.length < 3 && !g.examples.some(e => e.text === ex.text)) g.examples.push(ex); });
+        }
+        return [...groups.values()].map(g => ({ morph: g.morph, gloss: g.glosses.sort((a, b) => getGojuonSortKey(a).localeCompare(getGojuonSortKey(b), 'ja'))[0] || '', glosses_all: g.glosses, pos: g.pos, allomorphs: [...g.allomorphs].sort(), examples: g.examples, morph_index: null })).sort((a, b) => getGojuonSortKey(a.gloss).localeCompare(getGojuonSortKey(b.gloss), 'ja'));
+    }
+    return [...dictionaryData].sort((a, b) => stripBoundary(a.morph).toLowerCase().localeCompare(stripBoundary(b.morph).toLowerCase()) || (a.pos || '').localeCompare(b.pos || ''));
+}
+
+// 検索用：境界記号を除去
+function stripBoundary(text) {
+    if (!text) return '';
+    return text.replace(/^[=~+-.]/, '');
+}
+
+function matchSearch(text, query, mode) {
+    if (!text || !query) return false;
+    const t = text.toLowerCase();
+    const q = query.toLowerCase();
+    switch(mode) {
+        case 'exact': return t === q;
+        case 'prefix': return t.startsWith(q);
+        case 'suffix': return t.endsWith(q);
+        default: return t.includes(q);
+    }
+}
+
+// 形態素検索用：境界記号を除去して検索
+function matchMorphSearch(text, query, mode) {
+    if (!text || !query) return false;
+    const t = stripBoundary(text).toLowerCase();
+    const q = query.toLowerCase();
+    switch(mode) {
+        case 'exact': return t === q;
+        case 'prefix': return t.startsWith(q);
+        case 'suffix': return t.endsWith(q);
+        default: return t.includes(q);
+    }
+}
+
+function filterData() {
+    return getSortedData().filter(item => {
+        if (currentLetter) { 
+            if (reverseMode) { 
+                if (getGojuonRow(item.gloss) !== currentLetter) return false; 
+            } else { 
+                if (stripBoundary(item.morph).charAt(0).toLowerCase() !== currentLetter.toLowerCase()) return false; 
+            } 
+        }
+        if (currentFilter && item.pos !== currentFilter) return false;
+        if (searchQuery) {
+            let match = false;
+            if (searchTargets.morph && matchMorphSearch(item.morph, searchQuery, searchMode)) match = true;
+            if (!match && searchTargets.gloss) {
+                if (reverseMode && item.glosses_all) {
+                    if (item.glosses_all.some(g => matchSearch(g, searchQuery, searchMode))) match = true;
+                } else if (matchSearch(item.gloss, searchQuery, searchMode)) match = true;
+            }
+            if (!match && searchTargets.pos && matchSearch(item.pos, searchQuery, searchMode)) match = true;
+            if (!match && searchTargets.allo && item.allomorphs?.some(a => matchMorphSearch(a, searchQuery, searchMode))) match = true;
+            if (!match && searchTargets.trans && item.examples?.some(ex => matchSearch(ex.trans, searchQuery, searchMode))) match = true;
+            if (!match) return false;
+        }
+        return true;
+    });
+}
+
+function render() {
+    const list = document.getElementById('dictionaryList'), stats = document.getElementById('stats');
+    const filtered = filterData();
+    list.innerHTML = filtered.length === 0 ? '<div class="no-results">該当する語が見つかりません</div>' : filtered.map(item => renderEntry(item, searchQuery)).join('');
+    const exCount = filtered.reduce((s, i) => s + (i.examples?.length || 0), 0), transCount = filtered.reduce((s, i) => s + (i.examples?.filter(e => e.trans).length || 0), 0), audioCount = filtered.reduce((s, i) => s + (i.examples?.filter(e => e.audio_file).length || 0), 0);
+    stats.textContent = `${reverseMode ? '【逆引き】' : '【見出し順】'} 表示: ${filtered.length}語（用例: ${exCount}件、和訳: ${transCount}件、音声: ${audioCount}件）`;
+}
+
+function initAlphabetNav() {
+    const nav = document.getElementById('alphabetNav'); nav.innerHTML = '';
+    const allBtn = document.createElement('button'); allBtn.textContent = '全て'; allBtn.className = 'active';
+    allBtn.onclick = () => { currentLetter = null; nav.querySelectorAll('button').forEach(b => b.classList.remove('active')); allBtn.classList.add('active'); render(); };
+    nav.appendChild(allBtn);
+    if (reverseMode) {
+        const used = new Set(dictionaryData.map(d => getGojuonRow(d.gloss)));
+        gojuonRows.forEach(row => { if (used.has(row.label)) { const btn = document.createElement('button'); btn.textContent = row.label + '行'; btn.onclick = () => { currentLetter = row.label; nav.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); }; nav.appendChild(btn); } });
+    } else {
+        [...new Set(dictionaryData.map(d => stripBoundary(d.morph).charAt(0).toLowerCase()))].sort().forEach(letter => { const btn = document.createElement('button'); btn.textContent = letter.toUpperCase(); btn.onclick = () => { currentLetter = letter; nav.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); }; nav.appendChild(btn); });
+    }
+}
+
+function initPosFilters() {
+    const allPos = new Set(dictionaryData.map(d => d.pos).filter(Boolean)), filters = document.getElementById('posFilters'); filters.innerHTML = '';
+    const allBtn = document.createElement('button'); allBtn.className = 'filter-btn active'; allBtn.textContent = '全品詞';
+    allBtn.onclick = () => { currentFilter = null; filters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); allBtn.classList.add('active'); render(); };
+    filters.appendChild(allBtn);
+    ['V','N','ADJ','ADV','AUX','PRN','CP','ISP','SFP','INTJ','CONJ','VAFX','NAFX','FN','PN','CJP','LP'].forEach(pos => { if (allPos.has(pos)) { const btn = document.createElement('button'); btn.className = 'filter-btn'; btn.textContent = pos; btn.onclick = () => { currentFilter = pos; filters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); }; filters.appendChild(btn); } });
+}
+
+document.getElementById('modeNormal').onclick = () => { reverseMode = false; document.getElementById('modeNormal').classList.add('active'); document.getElementById('modeReverse').classList.remove('active'); currentLetter = null; initAlphabetNav(); render(); };
+document.getElementById('modeReverse').onclick = () => { reverseMode = true; document.getElementById('modeReverse').classList.add('active'); document.getElementById('modeNormal').classList.remove('active'); currentLetter = null; initAlphabetNav(); render(); };
+document.getElementById('searchInput').oninput = (e) => { searchQuery = e.target.value; render(); };
+
+// 検索モード切替
+document.querySelectorAll('.search-option').forEach(function(opt) {
+    opt.onclick = function() {
+        document.querySelectorAll('.search-option').forEach(function(o) { o.classList.remove('active'); });
+        opt.classList.add('active');
+        searchMode = opt.dataset.mode;
+        if (searchQuery) render();
+    };
+});
+
+// 検索対象切替
+document.querySelectorAll('.search-target').forEach(function(tgt) {
+    tgt.onclick = function() {
+        tgt.classList.toggle('active');
+        searchTargets[tgt.dataset.target] = tgt.classList.contains('active');
+        if (searchQuery) render();
+    };
+});
+
+document.getElementById('totalCount').textContent = dictionaryData.length;
+initAlphabetNav(); initPosFilters(); render();
+
+function downloadCSV() {
+    const escapeCSV = (str) => {
+        if (!str) return '';
+        str = String(str);
+        // Excelで数式として解釈される記号で始まる場合、先頭にシングルクォートを付ける
+        if (/^[=+-@]/.test(str)) {
+            str = "'" + str;
+        }
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    };
+    
+    // ヘッダー
+    const headers = ['morph', 'pos', 'gloss', 'allomorphs', 'morph_index', 'ex_text', 'ex_trans', 'ex_morphs', 'ex_glosses', 'ex_audio', 'ex_start', 'ex_end', 'ex_target'];
+    let csv = headers.join(',') + '\n';
+    
+    for (const entry of dictionaryData) {
+        const base = [
+            escapeCSV(entry.morph),
+            escapeCSV(entry.pos),
+            escapeCSV(entry.gloss),
+            escapeCSV((entry.allomorphs || []).join('|')),
+            escapeCSV(entry.morph_index || '')
+        ];
+        
+        if (entry.examples && entry.examples.length > 0) {
+            for (const ex of entry.examples) {
+                const row = [
+                    ...base,
+                    escapeCSV(ex.text),
+                    escapeCSV(ex.trans),
+                    escapeCSV((ex.morphs || []).join('|')),
+                    escapeCSV((ex.glosses || []).join('|')),
+                    escapeCSV(ex.audio_file),
+                    escapeCSV(ex.start_time),
+                    escapeCSV(ex.end_time),
+                    escapeCSV(ex.target_index)
+                ];
+                csv += row.join(',') + '\n';
+            }
+        } else {
+            csv += base.join(',') + ',,,,,,,,' + '\n';
+        }
+    }
+    
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dictionary.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
